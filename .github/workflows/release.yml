@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Kotlin compiler
+        uses: fwilhe2/setup-kotlin@main
+        with:
+          version: '2.0.21'
+
+      - name: Build library
+        run: |
+          mkdir -p dist
+          kotlinc KTCurses.kt -jvm-target 17 -d dist/ktcurses-${{ github.ref_name }}.jar
+          zip -q -j dist/ktcurses-${{ github.ref_name }}-sources.zip KTCurses.kt
+
+      - name: Build demo
+        run: |
+          kotlinc KTCurses.kt Editor.kt -include-runtime -jvm-target 17 -d dist/ktcurses-demo-${{ github.ref_name }}.jar
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: KTCurses ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/ktcurses-${{ github.ref_name }}.jar
+            dist/ktcurses-${{ github.ref_name }}-sources.zip
+            dist/ktcurses-demo-${{ github.ref_name }}.jar
+          body: |
+            KTCurses ${{ github.ref_name }}
+
+            ### Artifacts
+            - `ktcurses-${{ github.ref_name }}.jar` — library
+            - `ktcurses-${{ github.ref_name }}-sources.zip` — sources
+            - `ktcurses-demo-${{ github.ref_name }}.jar` — runnable demo
+
+            ### Usage
+            ```kotlin
+            dependencies {
+                implementation(files("libs/ktcurses-${{ github.ref_name }}.jar"))
+            }
+            ```name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Kotlin compiler
+        uses: fwilhe2/setup-kotlin@main
+        with:
+          version: '2.0.21'
+
+      - name: Build library
+        run: |
+          mkdir -p dist
+          kotlinc KTCurses.kt -jvm-target 17 -d dist/ktcurses-${{ github.ref_name }}.jar
+          zip -q -j dist/ktcurses-${{ github.ref_name }}-sources.zip KTCurses.kt
+
+      - name: Build demo
+        run: |
+          kotlinc KTCurses.kt Editor.kt -include-runtime -jvm-target 17 -d dist/ktcurses-demo-${{ github.ref_name }}.jar
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: KTCurses ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/ktcurses-${{ github.ref_name }}.jar
+            dist/ktcurses-${{ github.ref_name }}-sources.zip
+            dist/ktcurses-demo-${{ github.ref_name }}.jar
+          body: |
+            KTCurses ${{ github.ref_name }}
+
+            ### Artifacts
+            - `ktcurses-${{ github.ref_name }}.jar` — library
+            - `ktcurses-${{ github.ref_name }}-sources.zip` — sources
+            - `ktcurses-demo-${{ github.ref_name }}.jar` — runnable demo
+
+            ### Usage
+            ```kotlin
+            dependencies {
+                implementation(files("libs/ktcurses-${{ github.ref_name }}.jar"))
+            }
+            ```
