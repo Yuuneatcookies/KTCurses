@@ -3,7 +3,6 @@
 [![Kotlin](https://img.shields.io/badge/made%20in-Kotlin-lightgrey?style=flat-square&logo=kotlin)](https://kotlinlang.org/)
 [![Made by Yuun](https://img.shields.io/badge/made%20by-Yuun-lightgrey?style=flat-square&logo=github)](https://github.com/Yuuneatcookies)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-lightgrey?style=flat-square&logo=github)](https://Yuuneatcookies.github.io/KTCurses/)
-
 [![Release](https://img.shields.io/github/v/release/Yuuneatcookies/KTCurses?style=flat-square&color=lightgrey&logo=github)](https://github.com/Yuuneatcookies/KTCurses/releases)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey?style=flat-square&logo=linux)](https://github.com/Yuuneatcookies/KTCurses)
 
