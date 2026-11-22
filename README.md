@@ -1,8 +1,11 @@
 # KTCurses
 [![License](https://img.shields.io/badge/license-BSD--2--Clause-lightgrey?style=flat-square)](https://github.com/Yuuneatcookies/KTCurses/blob/main/LICENSE)
-[![Kotlin](https://img.shields.io/badge/made%20in-Kotlin-purple?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
-[![Made by Yuun](https://img.shields.io/badge/made%20by-Yuun-blue?style=flat-square)](https://github.com/Yuuneatcookies)
-[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-green?style=flat-square&logo=github)](https://Yuuneatcookies.github.io/KTCurses/) 
+[![Kotlin](https://img.shields.io/badge/made%20in-Kotlin-lightgrey?style=flat-square&logo=kotlin)](https://kotlinlang.org/)
+[![Made by Yuun](https://img.shields.io/badge/made%20by-Yuun-lightgrey?style=flat-square&logo=github)](https://github.com/Yuuneatcookies)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-lightgrey?style=flat-square&logo=github)](https://Yuuneatcookies.github.io/KTCurses/)
+
+[![Release](https://img.shields.io/github/v/release/Yuuneatcookies/KTCurses?style=flat-square&color=lightgrey&logo=github)](https://github.com/Yuuneatcookies/KTCurses/releases)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey?style=flat-square&logo=linux)](https://github.com/Yuuneatcookies/KTCurses)
 
 > KTCurses is a small new CLI library for Kotlin.
 > It gives you true color, diff-based rendering, and a ***simple*** canvas API.
