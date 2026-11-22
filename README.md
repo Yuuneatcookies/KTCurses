@@ -1,4 +1,5 @@
 # KTCurses
+![License](https://img.shields.io/badge/license-BSD--2--Clause-lightgrey)
 
 > KTCurses is a small new CLI library for Kotlin.
 > It gives you true color, diff-based rendering, and a ***simple*** canvas API.
