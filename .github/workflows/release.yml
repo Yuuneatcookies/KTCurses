@@ -22,7 +22,7 @@ jobs:
           java-version: '17'
 
       - name: Install Kotlin compiler
-        uses: fwilhe2/setup-kotlin@main
+        uses: fwilhe2/setup-kotlin@v1
         with:
           version: '2.0.21'
 
@@ -31,10 +31,6 @@ jobs:
           mkdir -p dist
           kotlinc KTCurses.kt -jvm-target 17 -d dist/ktcurses-${{ github.ref_name }}.jar
           zip -q -j dist/ktcurses-${{ github.ref_name }}-sources.zip KTCurses.kt
-
-      - name: Build demo
-        run: |
-          kotlinc KTCurses.kt Editor.kt -include-runtime -jvm-target 17 -d dist/ktcurses-demo-${{ github.ref_name }}.jar
 
       - name: Publish Release
         uses: softprops/action-gh-release@v2
@@ -45,14 +41,12 @@ jobs:
           files: |
             dist/ktcurses-${{ github.ref_name }}.jar
             dist/ktcurses-${{ github.ref_name }}-sources.zip
-            dist/ktcurses-demo-${{ github.ref_name }}.jar
           body: |
             KTCurses ${{ github.ref_name }}
 
             ### Artifacts
             - `ktcurses-${{ github.ref_name }}.jar` — library
             - `ktcurses-${{ github.ref_name }}-sources.zip` — sources
-            - `ktcurses-demo-${{ github.ref_name }}.jar` — runnable demo
 
             ### Usage
             ```kotlin
