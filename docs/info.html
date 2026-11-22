@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>About — KTCurses</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #24292f;
+            --text-muted: #57606a;
+            --accent: #0969da;
+            --accent-hover: #0349b4;
+            --border: #d0d7de;
+            --code-bg: #f6f8fa;
+            --sidebar-bg: #f6f8fa;
+            --header-bg: rgba(255, 255, 255, 0.85);
+            --sidebar-active: #eaeef2;
+            --term-bg: #1e1e1e;
+            --term-header: #2d2d2d;
+            --term-text: #d4d4d4;
+            --box-bg: #ffffff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0d1117;
+                --text: #c9d1d9;
+                --text-muted: #8b949e;
+                --accent: #58a6ff;
+                --accent-hover: #79c0ff;
+                --border: #30363d;
+                --code-bg: #161b22;
+                --sidebar-bg: #161b22;
+                --header-bg: rgba(13, 17, 23, 0.85);
+                --sidebar-active: #21262d;
+                --term-bg: #0d1117;
+                --term-header: #161b22;
+                --box-bg: #161b22;
+            }
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg); color: var(--text);
+            line-height: 1.6; overflow-x: hidden;
+        }
+
+        ::selection { background: var(--accent); color: #fff; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 0; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        a { 
+            color: var(--accent); text-decoration: none; 
+            transition: color 0.25s ease, text-decoration-color 0.25s ease;
+        }
+        a:hover { text-decoration: underline; text-decoration-color: var(--accent); }
+
+        .fade-up {
+            opacity: 0; transform: translateY(24px);
+            transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+        @keyframes rainbow {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        header.top-bar {
+            display: none; position: fixed; top: 0; left: 0; right: 0;
+            height: 60px; background: var(--header-bg); backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border); z-index: 100;
+            align-items: center; padding: 0 1rem;
+            padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
+        }
+
+        .burger {
+            display: flex; flex-direction: column; justify-content: space-around;
+            width: 28px; height: 22px; background: transparent; border: none; cursor: pointer; padding: 0;
+        }
+        .burger span {
+            width: 100%; height: 2px; background: var(--text); border-radius: 2px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform-origin: left center;
+        }
+        .burger.active span:nth-child(1) { transform: translateY(2px) rotate(45deg); }
+        .burger.active span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+        .burger.active span:nth-child(3) { transform: translateY(-2px) rotate(-45deg); }
+
+        .overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6);
+            opacity: 0; transition: opacity 0.3s ease; z-index: 90; backdrop-filter: blur(2px);
+        }
+        .overlay.active { opacity: 1; }
+
+        .layout { display: flex; max-width: 1300px; margin: 0 auto; min-height: 100vh; }
+
+        aside {
+            width: 280px; padding: 2rem 1.5rem; border-right: 1px solid var(--border);
+            background-color: var(--sidebar-bg); position: sticky; top: 0; height: 100vh;
+            overflow-y: auto; flex-shrink: 0; transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        aside h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 2rem 0 0.5rem 0; }
+        aside h2:first-child { margin-top: 0; }
+        aside ul { list-style: none; padding: 0; margin: 0; }
+        aside li { margin-bottom: 0.25rem; }
+        aside a {
+            color: var(--text-muted); text-decoration: none; font-size: 0.95rem;
+            display: block; padding: 0.4rem 0.75rem; border-radius: 6px;
+            border-left: 2px solid transparent; transition: all 0.25s ease;
+        }
+        aside a:hover { color: var(--text); }
+        aside a.active { color: var(--accent); background-color: var(--sidebar-active); border-left-color: var(--accent); font-weight: 500; }
+
+        main { flex: 1; padding: 3rem 4rem 6rem 4rem; min-width: 0; }
+
+        pre.ascii-art {
+            color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.65rem; line-height: 1.1; overflow-x: auto; margin-bottom: 2rem;
+            animation: rainbow 8s linear infinite;
+        }
+
+        h1 { font-size: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-top: 3rem; font-weight: 600; }
+        h1:first-of-type { margin-top: 0; }
+        h2 { font-size: 1.25rem; margin-top: 2.5rem; font-weight: 600; }
+        
+        .box {
+            border: 1px solid var(--border); border-radius: 8px;
+            padding: 1.25rem; margin-bottom: 1.5rem;
+            background-color: var(--box-bg);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .box:hover { border-color: var(--text-muted); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .box p { margin: 0 0 0.5rem 0; max-width: 100%; color: var(--text); }
+        .box p:last-child { margin-bottom: 0; }
+        
+        p { margin-bottom: 1rem; max-width: 800px; }
+        .lead { font-size: 1.15rem; color: var(--text-muted); margin-bottom: 3rem; }
+        
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.85em; background-color: var(--code-bg); padding: 0.2em 0.4em; border-radius: 6px;
+        }
+
+        @media (max-width: 768px) {
+            header.top-bar { display: flex; }
+            .layout { flex-direction: column; }
+            aside {
+                position: fixed; top: 0; left: 0; height: 100vh; z-index: 95;
+                transform: translateX(-100%); padding-top: 80px;
+            }
+            aside.active { transform: translateX(0); box-shadow: 10px 0 30px rgba(0, 0, 0, 0.2); }
+            .overlay { display: block; pointer-events: none; }
+            .overlay.active { pointer-events: auto; }
+            main { padding: 80px 1.5rem 4rem; }
+            pre.ascii-art { font-size: 0.45rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="top-bar">
+        <button class="burger" id="burger-btn" aria-label="Toggle menu">
+            <span></span><span></span><span></span>
+        </button>
+        <span style="margin-left: 1rem; font-weight: 600; font-family: monospace;">KTCurses</span>
+    </header>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="layout">
+        <aside id="sidebar">
+            <h2>Info</h2>
+            <ul>
+                <li><a href="#about" class="nav-link">About</a></li>
+                <li><a href="#why" class="nav-link">Why?</a></li>
+            </ul>
+
+            <h2>Links</h2>
+            <ul>
+                <li><a href="index.html">← API Docs</a></li>
+                <li><a href="https://github.com/Yuuneatcookies/KTCurses">GitHub Repo</a></li>
+            </ul>
+        </aside>
+
+        <main>
+            <pre class="ascii-art fade-up">
+ ;;; .;;,.      ;;;;;;;;''''     ,;;;'````'      ...    :::    :::::::..          .::::::..,::::::   .::::::.
+ [[[[[/'            [[           [[[             ;;     ;;;   ;;;;``;;;;        ;;;`    `;;;;''''  ;;;`    ``
+_$$$$,              $$           $$$            [['     [[[    [[[,/[[['        '[==/[[[[,[[cccc  '[==/[[[[,
+"888"88o,           88,          `88bo,__,o,      $$      $$$     $$$$$$c             '''    $$$""""    '''    $
+ MMM "MMP"         MMM            "YUMMMMMP"     88    .d888     888b "88bo,      88b    dP888oo,__  88b    dP
+::::::::::::   .,-:::::           ...    :::     "YmmMMMM""    MMMM   "W"        "YMmMY" """"YUMMM "YMmMY"
+            </pre>
+
+            <div id="about" class="fade-up">
+                <h1>About</h1>
+                <div class="box">
+                    <p class="lead">KTCurses is a small, opinionated CLI library for Kotlin, created by <strong>Yuun</strong>.</p>
+                    <p>It was built out of a desire for a terminal UI library that doesn't get in the way. No massive build configurations, no transitive dependency hell — just clean, readable Kotlin code that does exactly what you tell it to.</p>
+                </div>
+            </div>
+
+            <div id="why" class="fade-up">
+                <h1>Why?</h1>
+                <div class="box">
+                    <p><strong>Why one file?</strong> Because it forces simplicity. Everything lives in <code>KTCurses.kt</code>. You can read the entire source code in a few minutes. If you need to tweak something, you just edit the file. No forking, no PRs to a dead repo.</p>
+                    <p><strong>Why no dependencies?</strong> Because your terminal app shouldn't need 50MB of third-party libraries just to draw a box and read a key press. It uses pure JDK and Kotlin standard library.</p>
+                    <p><strong>Why diff-based rendering?</strong> Because flicker is ugly. KTCurses keeps a back buffer and only redraws the cells that actually changed since the last frame. It's fast, smooth, and easy on the eyes.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const burgerBtn = document.getElementById('burger-btn');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            const navLinksSide = sidebar.querySelectorAll('a');
+
+            function toggleMenu() {
+                burgerBtn.classList.toggle('active');
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+            }
+
+            burgerBtn.addEventListener('click', toggleMenu);
+            overlay.addEventListener('click', toggleMenu);
+            navLinksSide.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (sidebar.classList.contains('active')) toggleMenu();
+                });
+            });
+
+            const sections = document.querySelectorAll('div[id]');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const fadeElements = document.querySelectorAll('.fade-up');
+
+            const observerOptions = { root: null, rootMargin: '0px 0px -50px 0px', threshold: 0.1 };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                    if (entry.isIntersecting && entry.target.tagName === 'DIV') {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href') === '#' + entry.target.id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            fadeElements.forEach(el => observer.observe(el));
+            sections.forEach(sec => observer.observe(sec));
+
+            setTimeout(() => {
+                document.getElementById('about')?.classList.add('visible');
+                document.querySelector('.ascii-art')?.classList.add('visible');
+            }, 100);
+        });
+    </script>
+</body>
+  </html>
