@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g. v0.1.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -26,31 +32,41 @@ jobs:
         with:
           version: '2.0.21'
 
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build library
         run: |
           mkdir -p dist
-          kotlinc KTCurses.kt -jvm-target 17 -d dist/ktcurses-${{ github.ref_name }}.jar
-          zip -q -j dist/ktcurses-${{ github.ref_name }}-sources.zip KTCurses.kt
+          kotlinc KTCurses.kt -jvm-target 17 -d "dist/ktcurses-${{ steps.ver.outputs.tag }}.jar"
+          zip -q -j "dist/ktcurses-${{ steps.ver.outputs.tag }}-sources.zip" KTCurses.kt
 
       - name: Publish Release
         uses: softprops/action-gh-release@v2
         with:
-          name: KTCurses ${{ github.ref_name }}
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: KTCurses ${{ steps.ver.outputs.tag }}
           draft: false
           prerelease: false
           files: |
-            dist/ktcurses-${{ github.ref_name }}.jar
-            dist/ktcurses-${{ github.ref_name }}-sources.zip
+            dist/ktcurses-${{ steps.ver.outputs.tag }}.jar
+            dist/ktcurses-${{ steps.ver.outputs.tag }}-sources.zip
           body: |
-            KTCurses ${{ github.ref_name }}
+            KTCurses ${{ steps.ver.outputs.tag }}
 
             ### Artifacts
-            - `ktcurses-${{ github.ref_name }}.jar` — library
-            - `ktcurses-${{ github.ref_name }}-sources.zip` — sources
+            - `ktcurses-${{ steps.ver.outputs.tag }}.jar` — library
+            - `ktcurses-${{ steps.ver.outputs.tag }}-sources.zip` — sources
 
             ### Usage
             ```kotlin
             dependencies {
-                implementation(files("libs/ktcurses-${{ github.ref_name }}.jar"))
+                implementation(files("libs/ktcurses-${{ steps.ver.outputs.tag }}.jar"))
             }
             ```
