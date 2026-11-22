@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>KTCurses — Kotlin CLI Library</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #24292f;
+            --text-muted: #57606a;
+            --accent: #0969da;
+            --accent-hover: #0349b4;
+            --border: #d0d7de;
+            --code-bg: #f6f8fa;
+            --sidebar-bg: #f6f8fa;
+            --header-bg: rgba(255, 255, 255, 0.85);
+            --sidebar-active: #eaeef2;
+            --term-bg: #1e1e1e;
+            --term-header: #2d2d2d;
+            --term-text: #d4d4d4;
+            --box-bg: #ffffff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0d1117;
+                --text: #c9d1d9;
+                --text-muted: #8b949e;
+                --accent: #58a6ff;
+                --accent-hover: #79c0ff;
+                --border: #30363d;
+                --code-bg: #161b22;
+                --sidebar-bg: #161b22;
+                --header-bg: rgba(13, 17, 23, 0.85);
+                --sidebar-active: #21262d;
+                --term-bg: #0d1117;
+                --term-header: #161b22;
+                --box-bg: #161b22;
+            }
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg); color: var(--text);
+            line-height: 1.6; overflow-x: hidden;
+        }
+
+        ::selection { background: var(--accent); color: #fff; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 0; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        a { 
+            color: var(--accent); text-decoration: none; 
+            transition: color 0.25s ease, text-decoration-color 0.25s ease;
+        }
+        a:hover { text-decoration: underline; text-decoration-color: var(--accent); }
+
+        .fade-up {
+            opacity: 0; transform: translateY(24px);
+            transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+        @keyframes rainbow {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        header.top-bar {
+            display: none; position: fixed; top: 0; left: 0; right: 0;
+            height: 60px; background: var(--header-bg); backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border); z-index: 100;
+            align-items: center; padding: 0 1rem;
+            padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
+        }
+
+        .burger {
+            display: flex; flex-direction: column; justify-content: space-around;
+            width: 28px; height: 22px; background: transparent; border: none; cursor: pointer; padding: 0;
+        }
+        .burger span {
+            width: 100%; height: 2px; background: var(--text); border-radius: 2px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform-origin: left center;
+        }
+        .burger.active span:nth-child(1) { transform: translateY(2px) rotate(45deg); }
+        .burger.active span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+        .burger.active span:nth-child(3) { transform: translateY(-2px) rotate(-45deg); }
+
+        .overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6);
+            opacity: 0; transition: opacity 0.3s ease; z-index: 90; backdrop-filter: blur(2px);
+        }
+        .overlay.active { opacity: 1; }
+
+        .layout { display: flex; max-width: 1300px; margin: 0 auto; min-height: 100vh; }
+
+        aside {
+            width: 280px; padding: 2rem 1.5rem; border-right: 1px solid var(--border);
+            background-color: var(--sidebar-bg); position: sticky; top: 0; height: 100vh;
+            overflow-y: auto; flex-shrink: 0; transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        aside h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 2rem 0 0.5rem 0; }
+        aside h2:first-child { margin-top: 0; }
+        aside ul { list-style: none; padding: 0; margin: 0; }
+        aside li { margin-bottom: 0.25rem; }
+        aside a {
+            color: var(--text-muted); text-decoration: none; font-size: 0.95rem;
+            display: block; padding: 0.4rem 0.75rem; border-radius: 6px;
+            border-left: 2px solid transparent; transition: all 0.25s ease;
+        }
+        aside a:hover { color: var(--text); }
+        aside a.active { color: var(--accent); background-color: var(--sidebar-active); border-left-color: var(--accent); font-weight: 500; }
+
+        main { flex: 1; padding: 3rem 4rem 6rem 4rem; min-width: 0; }
+
+        pre.ascii-art {
+            color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.65rem; line-height: 1.1; overflow-x: auto; margin-bottom: 2rem;
+            animation: rainbow 8s linear infinite;
+        }
+
+        h1 { font-size: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-top: 3rem; font-weight: 600; }
+        h1:first-of-type { margin-top: 0; }
+        h2 { font-size: 1.25rem; margin-top: 2.5rem; font-weight: 600; }
+        
+        .box {
+            border: 1px solid var(--border); border-radius: 8px;
+            padding: 1.25rem; margin-bottom: 1.5rem;
+            background-color: var(--box-bg);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .box:hover { border-color: var(--text-muted); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .box p { margin: 0 0 0.5rem 0; max-width: 100%; color: var(--text); }
+        .box p:last-child { margin-bottom: 0; }
+        
+        p { margin-bottom: 1rem; max-width: 800px; }
+        .lead { font-size: 1.15rem; color: var(--text-muted); margin-bottom: 3rem; }
+        
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.85em; background-color: var(--code-bg); padding: 0.2em 0.4em; border-radius: 6px;
+        }
+
+        .links-box {
+            display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2.5rem;
+        }
+        @media (min-width: 600px) {
+            .links-box { flex-direction: row; }
+        }
+        
+        .link-card {
+            display: flex; align-items: center; justify-content: space-between; flex: 1;
+            border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.75rem;
+            background: var(--box-bg); transition: all 0.25s ease;
+            font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.85rem;
+        }
+        .link-card:hover { border-color: var(--text-muted); }
+        
+        .link-name { color: var(--text); font-weight: 600; margin-right: 1rem; }
+        
+        .link-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+        .link-btn {
+            background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+            padding: 0.25rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;
+            font-family: inherit; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center;
+        }
+        .link-btn:hover { background: var(--sidebar-active); color: var(--accent); border-color: var(--accent); text-decoration: none; }
+        .link-btn:active { transform: scale(0.95); }
+        .link-btn.copied { color: #2da44e; border-color: #2da44e; }
+
+        .terminal-window {
+            background-color: var(--term-bg); border-radius: 8px; border: 1px solid var(--border);
+            margin-bottom: 1.5rem; overflow: hidden; position: relative;
+        }
+        .terminal-header {
+            background-color: var(--term-header); padding: 0.5rem 1rem;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .terminal-title { font-size: 0.8rem; color: var(--text-muted); font-family: ui-monospace, monospace; }
+        
+        .copy-btn {
+            background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+            border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.75rem; cursor: pointer;
+            font-family: ui-monospace, monospace; 
+            transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+        }
+        .copy-btn:hover { background: var(--sidebar-active); color: var(--text); border-color: var(--text-muted); }
+        .copy-btn:active { transform: scale(0.95); transition: transform 0.1s; }
+
+        .terminal-body { padding: 1.25rem; margin: 0; overflow-x: auto; }
+        .terminal-body code { background: none; padding: 0; font-size: 0.9em; color: var(--term-text); line-height: 1.5; }
+
+        .acc-item {
+            border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.75rem;
+            background-color: var(--box-bg);
+            transition: border-color 0.3s ease;
+        }
+        .acc-item.active { border-color: var(--accent); }
+        
+        .acc-header {
+            padding: 0.75rem 1rem; cursor: pointer; font-family: ui-monospace, SFMono-Regular, monospace; font-weight: 600;
+            color: var(--accent); display: flex; justify-content: space-between; align-items: center;
+            user-select: none;
+            transition: color 0.25s ease;
+        }
+        .acc-header:hover { color: var(--accent-hover); }
+        
+        .acc-icon { 
+            font-size: 1.2rem; color: var(--text-muted); font-weight: normal; 
+            transition: transform 0.3s ease; 
+        }
+        .acc-item.active .acc-icon { transform: rotate(180deg); }
+
+        .acc-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+            opacity: 0;
+        }
+        
+        .acc-item.active .acc-body {
+            max-height: 500px;
+            opacity: 1;
+        }
+
+        .acc-content {
+            padding: 1rem; border-top: 1px solid var(--border); font-size: 0.95rem; color: var(--text-muted);
+        }
+
+        .scroll-top-btn {
+            position: fixed; bottom: 2rem; right: 2rem; z-index: 200;
+            width: 48px; height: 48px; background: var(--bg); border: 1px solid var(--border);
+            border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transform: translateY(10px);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); color: var(--text);
+        }
+        .scroll-top-btn.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+        .scroll-top-btn:hover { background: var(--sidebar-active); border-color: var(--accent); }
+        .scroll-top-btn svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+        .toast {
+            position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--term-bg); border: 1px solid var(--accent); border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 300; width: 90%; max-width: 600px;
+            opacity: 0; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
+        .toast-header {
+            background: var(--term-header); padding: 0.5rem 1rem; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            border-radius: 8px 8px 0 0; font-family: ui-monospace, monospace; font-size: 0.8rem;
+        }
+        .toast-title { color: var(--accent); font-weight: bold; }
+        .toast-close { 
+            background: transparent; border: none; color: var(--text-muted); font-size: 1.2rem; 
+            cursor: pointer; line-height: 1; padding: 0; transition: color 0.25s ease;
+        }
+        .toast-close:hover { color: #ff5f56; }
+        .toast-body { padding: 1rem; margin: 0; overflow-x: auto; max-height: 200px; font-size: 0.85rem; color: var(--term-text); }
+
+        .k { color: #cf222e; font-weight: bold; }
+        .s { color: #0a3069; }
+        .c { color: #6e7781; font-style: italic; }
+        .f { color: #8250df; }
+        @media (prefers-color-scheme: dark) {
+            .k { color: #ff7b72; } .s { color: #a5d6ff; }
+            .c { color: #8b949e; } .f { color: #d2a8ff; }
+        }
+
+        @media (max-width: 768px) {
+            header.top-bar { display: flex; }
+            .layout { flex-direction: column; }
+            aside {
+                position: fixed; top: 0; left: 0; height: 100vh; z-index: 95;
+                transform: translateX(-100%); padding-top: 80px;
+            }
+            aside.active { transform: translateX(0); box-shadow: 10px 0 30px rgba(0, 0, 0, 0.2); }
+            .overlay { display: block; pointer-events: none; }
+            .overlay.active { pointer-events: auto; }
+            main { padding: 80px 1.5rem 4rem; }
+            pre.ascii-art { font-size: 0.45rem; }
+            .scroll-top-btn { bottom: calc(1rem + env(safe-area-inset-bottom)); right: 1rem; width: 40px; height: 40px; }
+            .toast { bottom: calc(1rem + env(safe-area-inset-bottom)); width: calc(100% - 2rem); }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="top-bar">
+        <button class="burger" id="burger-btn" aria-label="Toggle menu">
+            <span></span><span></span><span></span>
+        </button>
+        <span style="margin-left: 1rem; font-weight: 600; font-family: monospace;">KTCurses</span>
+    </header>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="toast" id="toast">
+        <div class="toast-header">
+            <span class="toast-title">copied</span>
+            <button class="toast-close" id="toast-close">&times;</button>
+        </div>
+        <pre class="toast-body" id="toast-content"><code></code></pre>
+    </div>
+
+    <button class="scroll-top-btn" id="scroll-top" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    </button>
+
+    <div class="layout">
+        <aside id="sidebar">
+            <h2>Get Started</h2>
+            <ul>
+                <li><a href="#intro" class="nav-link">Introduction</a></li>
+                <li><a href="#install" class="nav-link">Installation</a></li>
+                <li><a href="#example" class="nav-link">Quick Example</a></li>
+            </ul>
+
+            <h2>API Reference</h2>
+            <ul>
+                <li><a href="#screen" class="nav-link">Screen</a></li>
+                <li><a href="#canvas" class="nav-link">Canvas</a></li>
+                <li><a href="#events" class="nav-link">Events & Input</a></li>
+                <li><a href="#colors" class="nav-link">Colors & TrueColor</a></li>
+            </ul>
+        </aside>
+
+        <main>
+            <pre class="ascii-art fade-up">
+ ;;; .;;,.      ;;;;;;;;''''     ,;;;'````'      ...    :::    :::::::..          .::::::..,::::::   .::::::.
+ [[[[[/'            [[           [[[             ;;     ;;;   ;;;;``;;;;        ;;;`    `;;;;''''  ;;;`    ``
+_$$$$,              $$           $$$            [['     [[[    [[[,/[[['        '[==/[[[[,[[cccc  '[==/[[[[,
+"888"88o,           88,          `88bo,__,o,      $$      $$$     $$$$$$c             '''    $$$""""    '''    $
+ MMM "MMP"         MMM            "YUMMMMMP"     88    .d888     888b "88bo,      88b    dP888oo,__  88b    dP
+::::::::::::   .,-:::::           ...    :::     "YmmMMMM""    MMMM   "W"        "YMmMY" """"YUMMM "YMmMY"
+            </pre>
+
+            <div class="links-box fade-up">
+                <div class="link-card">
+                    <span class="link-name">GitHub Repo</span>
+                    <div class="link-actions">
+                        <a href="https://github.com/Yuuneatcookies/KTCurses" target="_blank" rel="noopener" class="link-btn">Visit</a>
+                        <button class="link-btn copy-url-btn" data-url="https://github.com/Yuuneatcookies/KTCurses">Copy URL</button>
+                    </div>
+                </div>
+                <div class="link-card">
+                    <span class="link-name">Releases</span>
+                    <div class="link-actions">
+                        <a href="https://github.com/Yuuneatcookies/KTCurses/releases/tag/v0.1.0" target="_blank" rel="noopener" class="link-btn">Visit</a>
+                        <button class="link-btn copy-url-btn" data-url="https://github.com/Yuuneatcookies/KTCurses/releases/tag/v0.1.0">Copy URL</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="intro" class="fade-up">
+                <h1>KTCurses</h1>
+                <div class="box">
+                    <p class="lead">A small CLI library for Kotlin. True color, diff-based rendering, and a <strong>simple</strong> canvas API. In one FILE.</p>
+                </div>
+            </div>
+
+            <div id="install" class="fade-up">
+                <h2>Installation</h2>
+                <div class="box">
+                    <p>KTCurses is distributed as a standalone JAR. Download the latest version from the Releases page.</p>
+                </div>
+                
+                <div class="terminal-window">
+                    <div class="terminal-header">
+                        <span class="terminal-title">build.gradle.kts</span>
+                        <button class="copy-btn" data-target="code-install">Copy</button>
+                    </div>
+                    <pre class="terminal-body"><code id="code-install"><span class="c">// build.gradle.kts</span>
+dependencies {
+    implementation(files(<span class="s">"libs/ktcurses-v0.1.0.jar"</span>))
+}</code></pre>
+                </div>
+            </div>
+
+            <div id="example" class="fade-up">
+                <h2>Quick Example</h2>
+                <div class="box">
+                    <p>The main entry point is the <code>ktcurses</code> block. It handles terminal setup, rendering, and cleanup automatically.</p>
+                </div>
+                
+                <div class="terminal-window">
+                    <div class="terminal-header">
+                        <span class="terminal-title">main.kt</span>
+                        <button class="copy-btn" data-target="code-example">Copy</button>
+                    </div>
+                    <pre class="terminal-body"><code id="code-example"><span class="k">import</span> ktcurses.*
+
+<span class="k">fun</span> <span class="f">main</span>() = ktcurses(mouse = <span class="k">true</span>) { screen ->
+    <span class="k">while</span> (<span class="k">true</span>) {
+        screen.render {
+            clear()
+            box(<span class="s">1</span>, <span class="s">1</span>, width - <span class="s">2</span>, height - <span class="s">2</span>, Border.Rounded, title = <span class="s">" app "</span>)
+            text(<span class="s">3</span>, <span class="s">3</span>, <span class="s">"Hello, TUI!"</span>, Style(fg = Color.Cyan, attrs = Attrs.Bold))
+        }
+        <span class="k">when</span> (<span class="k">val</span> e = screen.waitEvent()) {
+            <span class="k">is</span> KeyEvent -> <span class="k">if</span> (e.key == Key.Escape) <span class="k">return</span>@ktcurses
+            <span class="k">else</span> -> {}
+        }
+    }
+}</code></pre>
+                </div>
+            </div>
+
+            <div id="screen" class="fade-up">
+                <h1>Screen</h1>
+                <div class="box">
+                    <p>Manages the terminal state, input queue, and the render loop. The <code>Screen</code> class is responsible for switching to the alternate screen buffer, putting the terminal into raw mode, and handling cleanup on exit.</p>
+                </div>
+                
+                <div class="acc-item">
+                    <div class="acc-header">render(draw: Canvas.() -> Unit) <span class="acc-icon">+</span></div>
+                    <div class="acc-body">
+                        <div class="acc-content">
+                            <p>Clears the back buffer, runs your drawing block, and flushes only the cells that have changed since the last frame. This diff-based rendering ensures high performance and zero flicker.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="acc-item">
+                    <div class="acc-header">waitEvent(): Event <span class="acc-icon">+</span></div>
+                    <div class="acc-body">
+                        <div class="acc-content">
+                            <p>Blocks the current thread until an input event arrives. It reads from a thread-safe queue that is populated by a background input reader thread. This is the recommended way to handle input in a game loop or event-driven app.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="acc-item">
+                    <div class="acc-header">poll(timeoutMs: Long): Event? <span class="acc-icon">+</span></div>
+                    <div class="acc-body">
+                        <div class="acc-content">
+                            <p>Non-blocking (or semi-blocking) alternative to <code>waitEvent</code>. Waits for up to <code>timeoutMs</code> milliseconds. Returns <code>null</code> if no event arrived. Useful for animations where you need to update the screen even without input.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="canvas" class="fade-up">
+                <h1>Canvas</h1>
+                <div class="box">
+                    <p>Provides the drawing primitives. A <code>Canvas</code> instance is passed to the <code>render</code> block and automatically handles wide characters (CJK, emoji) and clipping bounds.</p>
+                </div>
+                
+                <div class="acc-item">
+                    <div class="acc-header">text(x, y, s, style) <span class="acc-icon">+</span></div>
+                    <div class="acc-body">
+                        <div class="acc-content">
+                            <p>Draws a string starting at <code>(x, y)</code>. Returns the x-coordinate after the last drawn character. Automatically handles Unicode wide characters (e.g., Chinese characters take up 2 cells).</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="acc-item">
+                    <div class="acc-header">gradient(x, y, s, from, to) <span class="acc-icon">+</span></div>
+                    <div class="acc-body">
+                        <div class="acc-content">
+                            <p>Draws text where the foreground color smoothly transitions from <code>from</code> to <code>to</code> across the length of the string. Requires TrueColor to look good.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="acc-item">
+                    <div class="acc-header">box(x, y, w, h, border, title) <span class="acc-icon">+</span></div>
+                    <div class="acc-body">
+                        <div class="acc-content">
+                            <p>Draws a rectangular border. You can pass a custom <code>Border</code> (Single, Rounded, Double, Heavy, Ascii) and an optional title string.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="acc-item">
+                    <div class="acc-header">bar(x, y, w, value, filled) <span class="acc-icon">+</span></div>
+                    <div class="acc-body">
+                        <div class="acc-content">
+                            <p>Draws a progress bar. It uses partial block characters (▏▎▍▌▋▊▉) to provide sub-cell precision, making the progress smooth even on small widths.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="events" class="fade-up">
+                <h1>Events & Input</h1>
+                <div class="box">
+                    <p>Input is read on a background daemon thread and parsed from raw ANSI escape sequences. All events are pushed to a thread-safe queue. You consume them using <code>Screen.waitEvent()</code> or <code>Screen.poll()</code>.</p>
+                </div>
+
+                <h2>KeyEvent</h2>
+                <div class="box">
+                    <p>Represents a single key press. The parser handles standard ASCII, UTF-8 (for international characters and emoji), and standard terminal escape sequences (CSI/SS3) for arrows and function keys.</p>
+                    <p><strong>Properties:</strong></p>
+                    <ul style="margin-top: 0.5rem; margin-bottom: 0;">
+                        <li><code>key</code>: The pressed key (<code>Key.Up</code>, <code>Key.Enter</code>, <code>Key.rune('a'.code)</code>, etc.).</li>
+                        <li><code>ctrl</code>, <code>alt</code>, <code>shift</code>: Modifier booleans.</li>
+                        <li><code>char</code>: The actual character (if applicable), or <code>null</code> for special keys.</li>
+                    </ul>
+                </div>
+
+                <div class="terminal-window">
+                    <div class="terminal-header">
+                        <span class="terminal-title">input.kt</span>
+                        <button class="copy-btn" data-target="code-input">Copy</button>
+                    </div>
+                    <pre class="terminal-body"><code id="code-input"><span class="k">when</span> (<span class="k">val</span> e = screen.waitEvent()) {
+    <span class="k">is</span> KeyEvent -> {
+        <span class="k">if</span> (e.ctrl && e.key == Key.rune(<span class="s">'c'</span>.code)) {
+            <span class="c">// Ctrl+C pressed</span>
+        } <span class="k">else if</span> (e.key == Key.Escape) {
+            <span class="c">// Esc pressed</span>
+        }
+    }
+}</code></pre>
+                </div>
+
+                <h2>MouseEvent</h2>
+                <div class="box">
+                    <p>Triggered when the user interacts with the mouse. Mouse support is enabled by passing <code>mouse = true</code> to the <code>ktcurses</code> block. The library uses SGR 1006 mouse mode for maximum compatibility.</p>
+                    <p><strong>Properties:</strong></p>
+                    <ul style="margin-top: 0.5rem; margin-bottom: 0;">
+                        <li><code>x</code>, <code>y</code>: Zero-based coordinates.</li>
+                        <li><code>button</code>: <code>Left</code>, <code>Middle</code>, <code>Right</code>, <code>WheelUp</code>, <code>WheelDown</code>.</li>
+                        <li><code>action</code>: <code>Press</code>, <code>Release</code>, <code>Drag</code>, <code>Scroll</code>.</li>
+                    </ul>
+                </div>
+
+                <h2>ResizeEvent</h2>
+                <div class="box">
+                    <p>Fired when the terminal window is resized. KTCurses listens for the <code>SIGWINCH</code> signal (on POSIX systems) or polls <code>stty size</code> as a fallback. When a resize happens, the internal grid is automatically reallocated before you receive the event.</p>
+                </div>
+            </div>
+
+            <div id="colors" class="fade-up">
+                <h1>Colors & TrueColor</h1>
+                <div class="box">
+                    <p>KTCurses supports three color modes, detected automatically via <code>ColorMode.detect()</code>:</p>
+                    <ul style="margin-top: 0.5rem; margin-bottom: 0;">
+                        <li><strong>None:</strong> No colors (if <code>NO_COLOR</code> is set or <code>TERM=dumb</code>).</li>
+                        <li><strong>Ansi256:</strong> The standard 256-color palette.</li>
+                        <li><strong>TrueColor:</strong> 24-bit RGB (16.7 million colors).</li>
+                    </ul>
+                </div>
+
+                <h2>Why TrueColor?</h2>
+                <div class="box">
+                    <p>Standard terminals only supported 16 or 256 colors. If you wanted a specific shade (like GitHub's dark background <code>#0d1117</code>), the terminal would snap it to the nearest color in its fixed palette.</p>
+                    <p><strong>TrueColor</strong> (24-bit) allows you to specify exact RGB values, just like in CSS or Photoshop. KTCurses uses the <code>\e[38;2;R;G;Bm</code> escape sequence for foreground and <code>\e[48;2;R;G;Bm</code> for background.</p>
+                    <p>If the terminal doesn't support TrueColor, KTCurses automatically degrades gracefully: the <code>to256()</code> function finds the closest matching color in the 256-color palette, so your app still looks correct.</p>
+                </div>
+
+                <div class="terminal-window">
+                    <div class="terminal-header">
+                        <span class="terminal-title">colors.kt</span>
+                        <button class="copy-btn" data-target="code-colors">Copy</button>
+                    </div>
+                    <pre class="terminal-body"><code id="code-colors"><span class="c">// Exact 24-bit RGB colors</span>
+<span class="k">val</span> customStyle = Style(
+    fg = Color.rgb(<span class="s">255</span>, <span class="s">192</span>, <span class="s">203</span>), <span class="c">// Pink</span>
+    bg = Color.hex(<span class="s">0x0d1117</span>),      <span class="c">// GitHub dark bg</span>
+    attrs = Attrs.Bold or Attrs.Underline
+)
+
+<span class="c">// Smooth gradients</span>
+canvas.gradient(<span class="s">5</span>, <span class="s">5</span>, <span class="s">"Gradient Text"</span>, Color.Cyan, Color.Magenta)</code></pre>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const burgerBtn = document.getElementById('burger-btn');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            const navLinksSide = sidebar.querySelectorAll('a');
+
+            function toggleMenu() {
+                burgerBtn.classList.toggle('active');
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+            }
+
+            burgerBtn.addEventListener('click', toggleMenu);
+            overlay.addEventListener('click', toggleMenu);
+            navLinksSide.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (sidebar.classList.contains('active')) toggleMenu();
+                });
+            });
+
+            const sections = document.querySelectorAll('div[id]');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const fadeElements = document.querySelectorAll('.fade-up');
+
+            const observerOptions = { root: null, rootMargin: '0px 0px -50px 0px', threshold: 0.1 };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                    if (entry.isIntersecting && entry.target.tagName === 'DIV') {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href') === '#' + entry.target.id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            fadeElements.forEach(el => observer.observe(el));
+            sections.forEach(sec => observer.observe(sec));
+
+            setTimeout(() => {
+                document.getElementById('intro')?.classList.add('visible');
+                document.querySelector('.ascii-art')?.classList.add('visible');
+                document.querySelector('.links-box')?.classList.add('visible');
+            }, 100);
+
+            const scrollBtn = document.getElementById('scroll-top');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 300) {
+                    scrollBtn.classList.add('visible');
+                } else {
+                    scrollBtn.classList.remove('visible');
+                }
+            });
+
+            scrollBtn.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            const toast = document.getElementById('toast');
+            const toastContent = document.getElementById('toast-content').querySelector('code');
+            const toastClose = document.getElementById('toast-close');
+            const copyBtns = document.querySelectorAll('.copy-btn');
+            let toastTimeout;
+
+            copyBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetId = btn.getAttribute('data-target');
+                    const codeBlock = document.getElementById(targetId);
+                    const textToCopy = codeBlock.innerText;
+                    
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        toastContent.innerText = textToCopy;
+                        toast.classList.add('show');
+
+                        const originalText = btn.innerText;
+                        btn.innerText = 'Copied!';
+                        setTimeout(() => btn.innerText = originalText, 2000);
+
+                        clearTimeout(toastTimeout);
+                        toastTimeout = setTimeout(() => {
+                            toast.classList.remove('show');
+                        }, 4000);
+                    });
+                });
+            });
+
+            toastClose.addEventListener('click', () => {
+                toast.classList.remove('show');
+                clearTimeout(toastTimeout);
+            });
+
+            const copyUrlBtns = document.querySelectorAll('.copy-url-btn');
+            copyUrlBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const url = btn.getAttribute('data-url');
+                    navigator.clipboard.writeText(url).then(() => {
+                        const originalText = btn.innerText;
+                        btn.innerText = 'Copied!';
+                        btn.classList.add('copied');
+                        setTimeout(() => {
+                            btn.innerText = originalText;
+                            btn.classList.remove('copied');
+                        }, 2000);
+                    });
+                });
+            });
+
+            const accHeaders = document.querySelectorAll('.acc-header');
+            accHeaders.forEach(header => {
+                header.addEventListener('click', () => {
+                    const item = header.parentElement;
+                    item.classList.toggle('active');
+                    
+                    const icon = header.querySelector('.acc-icon');
+                    if (item.classList.contains('active')) {
+                        icon.textContent = '−';
+                    } else {
+                        icon.textContent = '+';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+  </html>
